@@ -40,6 +40,7 @@ func init() {
 }
 
 func main() {
+	// 新建消费者
 	c, err := NewConsumer(*uri, *exchange, *exchangeType, *queue, *bindingKey, *consumerTag)
 	if err != nil {
 		ErrLog.Fatalf("%s", err)
@@ -82,11 +83,12 @@ func SetupCloseHandler(consumer *Consumer) {
 	}()
 }
 
+// NewConsumer 新建消费者
 func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (*Consumer, error) {
 	c := &Consumer{
 		conn:    nil,
 		channel: nil,
-		tag:     ctag,
+		tag:     ctag, // 消费者标签
 		done:    make(chan error),
 	}
 
@@ -94,7 +96,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (
 
 	config := amqp.Config{Properties: amqp.NewConnectionProperties()}
 	config.Properties.SetClientConnectionName("sample-consumer")
-	Log.Printf("dialing %q", amqpURI)
+	Log.Printf("dialing %q", amqpURI) // 代理的url
 	c.conn, err = amqp.DialConfig(amqpURI, config)
 	if err != nil {
 		return nil, fmt.Errorf("Dial: %s", err)
@@ -112,8 +114,8 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (
 
 	Log.Printf("got Channel, declaring Exchange (%q)", exchange)
 	if err = c.channel.ExchangeDeclare(
-		exchange,     // name of the exchange
-		exchangeType, // type
+		exchange,     // name of the exchange，交换的名字
+		exchangeType, // type，交换的类型
 		true,         // durable
 		false,        // delete when complete
 		false,        // internal
@@ -125,7 +127,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (
 
 	Log.Printf("declared Exchange, declaring Queue %q", queueName)
 	queue, err := c.channel.QueueDeclare(
-		queueName, // name of the queue
+		queueName, // name of the queue，消息队列的名字
 		true,      // durable
 		false,     // delete when unused
 		false,     // exclusive
@@ -141,7 +143,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (
 
 	if err = c.channel.QueueBind(
 		queue.Name, // name of the queue
-		key,        // bindingKey
+		key,        // bindingKey，绑定密钥
 		exchange,   // sourceExchange
 		false,      // noWait
 		nil,        // arguments

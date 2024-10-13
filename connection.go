@@ -251,11 +251,12 @@ func DialConfig(url string, config Config) (*Connection, error) {
 		dialer = DefaultDial(connectionTimeout)
 	}
 
-	conn, err = dialer("tcp", addr)
+	conn, err = dialer("tcp", addr) // tcp连接
 	if err != nil {
 		return nil, err
 	}
 
+	// tls安全连接配置
 	if uri.Scheme == "amqps" {
 		if config.TLSClientConfig == nil {
 			tlsConfig, err := tlsConfigFromURI(uri)
@@ -271,8 +272,8 @@ func DialConfig(url string, config Config) (*Connection, error) {
 			config.TLSClientConfig.ServerName = uri.Host
 		}
 
-		client := tls.Client(conn, config.TLSClientConfig)
-		if err := client.Handshake(); err != nil {
+		client := tls.Client(conn, config.TLSClientConfig) // tls安全连接
+		if err := client.Handshake(); err != nil {         // 握手是否有问题
 			conn.Close()
 			return nil, err
 		}
@@ -837,6 +838,8 @@ func (c *Connection) isCapable(featureName string) bool {
 // allocateChannel records but does not open a new channel with a unique id.
 // This method is the initial part of the channel lifecycle and paired with
 // releaseChannel
+// allocateChannel 记录，但不会打开具有唯一ID的新chan。
+// 此方法是chan生命周期的初始部分，并与releaseChannel配对
 func (c *Connection) allocateChannel() (*Channel, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
@@ -845,13 +848,13 @@ func (c *Connection) allocateChannel() (*Channel, error) {
 		return nil, ErrClosed
 	}
 
-	id, ok := c.allocator.next()
+	id, ok := c.allocator.next() // chan的全局唯一id
 	if !ok {
 		return nil, ErrChannelMax
 	}
 
-	ch := newChannel(c, uint16(id))
-	c.channels[uint16(id)] = ch
+	ch := newChannel(c, uint16(id)) //新建chan
+	c.channels[uint16(id)] = ch     // 赋值操作
 
 	return ch, nil
 }
@@ -873,12 +876,12 @@ func (c *Connection) releaseChannel(ch *Channel) {
 
 // openChannel allocates and opens a channel, must be paired with closeChannel
 func (c *Connection) openChannel() (*Channel, error) {
-	ch, err := c.allocateChannel()
+	ch, err := c.allocateChannel() // 分配一个管道
 	if err != nil {
 		return nil, err
 	}
 
-	if err := ch.open(); err != nil {
+	if err := ch.open(); err != nil { // 并打开管道
 		c.releaseChannel(ch)
 		return nil, err
 	}
@@ -895,8 +898,11 @@ func (c *Connection) closeChannel(ch *Channel, e *Error) {
 
 /*
 Channel opens a unique, concurrent server channel to process the bulk of AMQP
-messages.  Any error from methods on this receiver will render the receiver
+messages.
+Any error from methods on this receiver will render the receiver
 invalid and a new Channel should be opened.
+Channel将打开一个唯一的，并发的服务器chan来处理大部分AMQP消息。
+此接收机上方法的任何错误都将使接收机无效，并应打开一个新的chan。
 */
 func (c *Connection) Channel() (*Channel, error) {
 	return c.openChannel()

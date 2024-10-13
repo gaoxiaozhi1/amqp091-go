@@ -17,6 +17,9 @@ const (
 )
 
 // allocator maintains a bitset of allocated numbers.
+// 分配器维护一组已分配的数字。
+// 维护一个big.Int类型的变量pool作为位集，用于表示给定范围内整数的分配状态。
+// 每个位对应一个整数，0 表示未分配（free），1 表示已分配（allocated）
 type allocator struct {
 	pool   *big.Int
 	follow int
@@ -65,14 +68,18 @@ func (a allocator) String() string {
 
 // Next reserves and returns the next available number out of the range between
 // low and high.  If no number is available, false is returned.
+// 下一个储存并返回 低至高范围内的 下一个可用数字。如果没有可用数字，则返回虚假数字。
 //
 // O(N) worst case runtime where N is allocated, but usually O(1) due to a
 // rolling index into the oldest allocation.
+// 0(N)运行时最坏的情况，其中分配了N，但通常是0(1)，原因是滚动索引进入最旧的分配。
+// 提供了next方法用于分配下一个可用的整数。该方法从follow指向的位置开始查找，
+// 采用环形查找策略，如果没有找到可用数字，则返回false。
 func (a *allocator) next() (int, bool) {
 	wrapped := a.follow
 	defer func() {
 		// make a.follow point to next value
-		if a.follow == a.high {
+		if a.follow == a.high { // 由low到high的数字环形
 			a.follow = a.low
 		} else {
 			a.follow += 1
@@ -100,6 +107,8 @@ func (a *allocator) next() (int, bool) {
 
 // reserve claims the bit if it is not already claimed, returning true if
 // successfully claimed.
+// reserve方法用于尝试分配一个特定的整数，如果该整数未被分配，则将其标记为已分配并返回true，
+// 否则返回false。
 func (a *allocator) reserve(n int) bool {
 	if a.reserved(n) {
 		return false
@@ -109,11 +118,13 @@ func (a *allocator) reserve(n int) bool {
 }
 
 // reserved returns true if the integer has been allocated
+// reserved方法用于检查一个整数是否已被分配。
 func (a *allocator) reserved(n int) bool {
 	return a.pool.Bit(n-a.low) == allocated
 }
 
 // release frees the use of the number for another allocation
+// release方法用于释放一个已分配的整数，将其对应的位设置为未分配状态
 func (a *allocator) release(n int) {
 	a.pool.SetBit(a.pool, n-a.low, free)
 }

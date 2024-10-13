@@ -124,6 +124,8 @@ loop:
 // publishing. Note that this struct has an internal mutex to safeguard against
 // data races. As you develop and iterate over this example, you may need to add
 // further locks, or safeguards, to keep your application safe from data races
+// 客户端是处理连接恢复、消耗和发布的基础结构。请注意，此结构具有内部互斥量，以防止数据竞争。
+// 随着您开发和迭代此示例，您可能需要添加其他锁定或保护措施，以使应用程序免受数据竞争的影响。
 type Client struct {
 	m               *sync.Mutex
 	queueName       string
